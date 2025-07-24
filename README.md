@@ -370,10 +370,9 @@ UniORM is released under the MIT License. See [LICENSE](LICENSE) for details.
 
 ## Support
 
-- 📚 [Documentation](https://docs.uniorm.dev)
-- 💬 [Discord Community](https://discord.gg/uniorm)
-- 🐛 [Issue Tracker](https://github.com/uniorm/uniorm/issues)
-- 📧 [Email Support](mailto:support@uniorm.dev)
+- 📚 [Documentation](https://github.com/Sulochan-khadka/uni-orm/blob/main/README.md)
+- 🐛 [Issue Tracker](https://github.com/Sulochan-khadka/uni-orm/issues)
+- 📧 [Email Support](mailto:sulochankhadka25@gmail.com)
 
 ## Roadmap
 
