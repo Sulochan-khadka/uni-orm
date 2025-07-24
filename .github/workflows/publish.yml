@@ -1,0 +1,99 @@
+name: Publish Artifacts & Deploy Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'dist/**'
+      - 'lib/**'
+      - 'package.json'
+      - '*.gemspec'
+      - 'composer.json'
+      - 'docs/**'
+
+jobs:
+  publish-js:
+    name: Publish JS/TS Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install & Build
+        run: |
+          npm ci
+          npm run build
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --access public
+
+  publish-python:
+    name: Publish Python Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Build & Publish to PyPI
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build --sdist --wheel
+          python -m twine upload --username "${{ secrets.PYPI_USERNAME }}" \
+                                --password "${{ secrets.PYPI_PASSWORD }}" \
+                                dist/*
+
+  publish-ruby:
+    name: Publish Ruby Gem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+      - name: Build & Push Gem
+        run: |
+          gem build uni-orm.gemspec
+          gem push uni-orm-$(ruby -e "print Gem::Specification.load('uni-orm.gemspec').version") --api-key ${{ secrets.RUBYGEMS_API_KEY }}
+
+  publish-php:
+    name: Notify Packagist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          extensions: pdo
+      - name: Configure Composer Auth
+        run: |
+          echo '${{ secrets.COMPOSER_AUTH }}' > ~/.composer/auth.json
+      - name: Update Package on Packagist
+        run: |
+          curl -X POST "https://packagist.org/api/update-package?username=$(jq -r '."http-basic"."repo.packagist.org".username' ~/.composer/auth.json)&apiToken=$(jq -r '."http-basic"."repo.packagist.org".password' ~/.composer/auth.json)&repository=https://github.com/${{ github.repository }}"
+
+  deploy-pages:
+    name: Deploy GitHub Pages
+    needs:
+      - publish-js
+      - publish-python
+      - publish-ruby
+      - publish-php
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
