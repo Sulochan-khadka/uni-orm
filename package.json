@@ -1,6 +1,6 @@
 {
   "name": "uni-orm",
-  "version": "1.0.0",
+  "version": "1.0.0",,
   "description": "Universal ORM that works across all programming languages and databases",
   "main": "src/index.js",
   "bin": {
