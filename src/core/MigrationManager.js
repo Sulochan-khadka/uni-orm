@@ -1,0 +1,262 @@
+const fs = require('fs-extra');
+const path = require('path');
+const chalk = require('chalk');
+const ora = require('ora');
+const inquirer = require('inquirer');
+const { ConfigManager } = require('./ConfigManager');
+const { DatabaseAdapter } = require('../adapters/DatabaseAdapter');
+
+class MigrationManager {
+  constructor() {
+    this.configManager = new ConfigManager();
+    this.migrationsPath = path.join(process.cwd(), 'migrations');
+  }
+
+  async migrate(options = {}) {
+    const spinner = ora('Preparing migration...').start();
+    
+    try {
+      const config = await this.configManager.load();
+      const { from, to, type } = options;
+      
+      if (!from || !to) {
+        spinner.stop();
+        return await this.interactiveMigration();
+      }
+      
+      if (this.isSameDatabaseType(from, to)) {
+        spinner.text = 'Performing same-type database migration...';
+        await this.performSameTypeMigration(from, to, type);
+      } else {
+        spinner.text = 'Performing cross-type database migration...';
+        await this.performCrossTypeMigration(from, to, type);
+      }
+      
+      spinner.succeed('Migration completed successfully!');
+    } catch (error) {
+      spinner.fail('Migration failed');
+      console.error(chalk.red(error.message));
+    }
+  }
+
+  async interactiveMigration() {
+    const answers = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'from',
+        message: 'Select source database:',
+        choices: [
+          { name: 'PostgreSQL', value: 'postgresql' },
+          { name: 'MySQL', value: 'mysql' },
+          { name: 'SQLite', value: 'sqlite' },
+          { name: 'MongoDB', value: 'mongodb' },
+          { name: 'Redis', value: 'redis' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'to',
+        message: 'Select target database:',
+        choices: [
+          { name: 'PostgreSQL', value: 'postgresql' },
+          { name: 'MySQL', value: 'mysql' },
+          { name: 'SQLite', value: 'sqlite' },
+          { name: 'MongoDB', value: 'mongodb' },
+          { name: 'Redis', value: 'redis' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'type',
+        message: 'What do you want to migrate?',
+        choices: [
+          { name: 'Schema only', value: 'schema' },
+          { name: 'Data only', value: 'data' },
+          { name: 'Both schema and data', value: 'both' }
+        ]
+      }
+    ]);
+
+    return await this.migrate(answers);
+  }
+
+  isSameDatabaseType(from, to) {
+    const sqlDatabases = ['postgresql', 'mysql', 'sqlite'];
+    const nosqlDatabases = ['mongodb', 'redis', 'couchdb'];
+    
+    return (
+      (sqlDatabases.includes(from) && sqlDatabases.includes(to)) ||
+      (nosqlDatabases.includes(from) && nosqlDatabases.includes(to))
+    );
+  }
+
+  async performSameTypeMigration(from, to, type) {
+    const fromAdapter = new DatabaseAdapter(from);
+    const toAdapter = new DatabaseAdapter(to);
+    
+    await fromAdapter.connect();
+    await toAdapter.connect();
+    
+    try {
+      if (type === 'schema' || type === 'both') {
+        console.log(chalk.blue('Migrating schema...'));
+        const schema = await fromAdapter.exportSchema();
+        await toAdapter.importSchema(schema);
+      }
+      
+      if (type === 'data' || type === 'both') {
+        console.log(chalk.blue('Migrating data...'));
+        const data = await fromAdapter.exportData();
+        await toAdapter.importData(data);
+      }
+      
+      // Generate migration file
+      await this.generateMigrationFile(from, to, type);
+      
+    } finally {
+      await fromAdapter.disconnect();
+      await toAdapter.disconnect();
+    }
+  }
+
+  async performCrossTypeMigration(from, to, type) {
+    console.log(chalk.yellow('Cross-type migration detected!'));
+    console.log(chalk.blue('Launching dashboard for visual migration...'));
+    
+    // Export current schema
+    const fromAdapter = new DatabaseAdapter(from);
+    await fromAdapter.connect();
+    
+    const schema = await fromAdapter.exportSchema();
+    await fromAdapter.disconnect();
+    
+    // Save schema for dashboard
+    const schemaPath = path.join(process.cwd(), 'migration-schema.json');
+    await fs.outputFile(schemaPath, JSON.stringify(schema, null, 2));
+    
+    console.log(chalk.green('Schema exported to migration-schema.json'));
+    console.log(chalk.yellow('Please run "uni-orm dashboard" to continue with visual migration'));
+    
+    // Generate migration instructions
+    await this.generateCrossTypeMigrationInstructions(from, to, type);
+  }
+
+  async generateMigrationFile(from, to, type) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${timestamp}-migrate-${from}-to-${to}.sql`;
+    const filepath = path.join(this.migrationsPath, filename);
+    
+    await fs.ensureDir(this.migrationsPath);
+    
+    const content = `-- Migration: ${from} to ${to}
+-- Type: ${type}
+-- Generated: ${new Date().toISOString()}
+
+-- This migration was generated by UniORM
+-- Source: ${from}
+-- Target: ${to}
+-- Migration type: ${type}
+
+-- Add your custom migration logic here
+`;
+    
+    await fs.outputFile(filepath, content);
+    console.log(chalk.green(`Migration file created: ${filename}`));
+  }
+
+  async generateCrossTypeMigrationInstructions(from, to, type) {
+    const instructions = {
+      from,
+      to,
+      type,
+      steps: [
+        {
+          step: 1,
+          title: 'Review exported schema',
+          description: 'Check migration-schema.json for your current database structure'
+        },
+        {
+          step: 2,
+          title: 'Launch dashboard',
+          description: 'Run "uni-orm dashboard" to access the visual migration tool'
+        },
+        {
+          step: 3,
+          title: 'Design new schema',
+          description: 'Use the dashboard to create tables and relationships for your target database'
+        },
+        {
+          step: 4,
+          title: 'Generate migration code',
+          description: 'The dashboard will generate the necessary migration code'
+        },
+        {
+          step: 5,
+          title: 'Execute migration',
+          description: 'Run the generated migration to complete the process'
+        }
+      ],
+      considerations: this.getCrossTypeMigrationConsiderations(from, to)
+    };
+    
+    const instructionsPath = path.join(process.cwd(), 'migration-instructions.json');
+    await fs.outputFile(instructionsPath, JSON.stringify(instructions, null, 2));
+    
+    console.log(chalk.green('Migration instructions saved to migration-instructions.json'));
+  }
+
+  getCrossTypeMigrationConsiderations(from, to) {
+    const considerations = [];
+    
+    if (from === 'mongodb' && ['postgresql', 'mysql', 'sqlite'].includes(to)) {
+      considerations.push('Document structure will need to be flattened into relational tables');
+      considerations.push('Consider how to handle nested objects and arrays');
+      considerations.push('Define relationships between extracted entities');
+    }
+    
+    if (['postgresql', 'mysql', 'sqlite'].includes(from) && to === 'mongodb') {
+      considerations.push('Related tables can be denormalized into documents');
+      considerations.push('Consider embedding vs referencing for relationships');
+      considerations.push('Design document structure for optimal query performance');
+    }
+    
+    if (to === 'redis') {
+      considerations.push('Redis is a key-value store - design appropriate key structures');
+      considerations.push('Consider data types and serialization strategies');
+      considerations.push('Plan for data expiration and memory management');
+    }
+    
+    return considerations;
+  }
+
+  async listMigrations() {
+    const migrations = await fs.readdir(this.migrationsPath);
+    return migrations.filter(file => file.endsWith('.sql')).sort();
+  }
+
+  async rollback(steps = 1) {
+    const spinner = ora('Rolling back migrations...').start();
+    
+    try {
+      const migrations = await this.listMigrations();
+      const toRollback = migrations.slice(-steps);
+      
+      for (const migration of toRollback.reverse()) {
+        spinner.text = `Rolling back ${migration}...`;
+        await this.rollbackMigration(migration);
+      }
+      
+      spinner.succeed(`Rolled back ${steps} migration(s)`);
+    } catch (error) {
+      spinner.fail('Rollback failed');
+      console.error(chalk.red(error.message));
+    }
+  }
+
+  async rollbackMigration(migrationFile) {
+    // Implementation depends on the specific ORM and database
+    console.log(chalk.yellow(`Rolling back: ${migrationFile}`));
+  }
+}
+
+module.exports = { MigrationManager };
