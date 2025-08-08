@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>UniORM Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:1rem; }
+    .flex { display: flex; gap: 1rem; }
+    .panel { flex: 1; border: 1px solid #ccc; padding: 1rem; min-height: 200px; }
+    .draggable { padding: 4px; border: 1px solid #999; margin-bottom: 4px; background: #f7f7f7; cursor: move; }
+    .dropzone { min-height: 50px; border: 1px dashed #aaa; padding: 4px; }
+    #output { white-space: pre-wrap; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>UniORM Mapping</h1>
+  <div class="flex">
+    <div class="panel">
+      <h3>Tables</h3>
+      <div id="tables"></div>
+    </div>
+    <div class="panel">
+      <h3>Collections</h3>
+      <div id="collections" class="dropzone"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:1rem;">
+    <h3>Options</h3>
+    <label>Per-relation strategy:
+      <select id="relationStrategy">
+        <option value="embed">embed</option>
+        <option value="reference">reference</option>
+      </select>
+    </label>
+    <br/>
+    <label>ID strategy:
+      <select id="idStrategy">
+        <option value="uuid">uuid</option>
+        <option value="objectId">objectId</option>
+      </select>
+    </label>
+    <br/>
+    <label>Decimal mode:
+      <select id="decimalMode">
+        <option value="string">string</option>
+        <option value="decimal128">decimal128</option>
+      </select>
+    </label>
+    <br/>
+    <button id="previewBtn">Preview Transform</button>
+    <button id="saveBtn">Save & Generate Token</button>
+  </div>
+
+  <pre id="output"></pre>
+
+  <script src="app.js"></script>
+</body>
+</html>
