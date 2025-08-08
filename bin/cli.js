@@ -16,6 +16,20 @@ console.log(
 );
 console.log(chalk.yellow('Universal ORM for all programming languages\n'));
 
+// Support syntax: "uni-orm <from> migrate <to>"
+const cliArgs = process.argv.slice(2);
+if (
+  cliArgs.length === 3 &&
+  !cliArgs[0].startsWith('-') &&
+  cliArgs[1] === 'migrate'
+) {
+  const migrationManager = new MigrationManager();
+  migrationManager
+    .migrate({ from: cliArgs[0], to: cliArgs[2] })
+    .catch(err => console.error(chalk.red(err.message)));
+  return;
+}
+
 program
   .name('uni-orm')
   .description('Universal ORM CLI')
@@ -77,6 +91,16 @@ program
   .action(async (options) => {
     const uniorm = new UniORM();
     await uniorm.sync(options);
+  });
+
+// Pull commands
+const pull = program.command('pull').description('Apply saved changes');
+pull
+  .command('dbchange <id>')
+  .description('Apply a cross-database change generated from the dashboard')
+  .action(async (id) => {
+    const migrationManager = new MigrationManager();
+    await migrationManager.pullDbChange(id);
   });
 
 program.parse();

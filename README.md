@@ -81,8 +81,14 @@ uni-orm detect
 # Same-type migration (MySQL to PostgreSQL)
 uni-orm migrate --from mysql --to postgresql
 
+# Shorthand form
+uni-orm mysql migrate postgresql
+
 # Cross-type migration (SQL to NoSQL)
 uni-orm migrate --from postgresql --to mongodb
+
+# Apply saved cross-database change
+uni-orm pull dbchange <change-id>
 
 # Data-only migration
 uni-orm migrate --from mysql --to postgresql --type data
@@ -151,6 +157,9 @@ Migrations between similar database types (SQL to SQL, NoSQL to NoSQL) are handl
 # SQL to SQL migration
 uni-orm migrate --from mysql --to postgresql
 
+# Shorthand
+uni-orm mysql migrate postgresql
+
 # NoSQL to NoSQL migration
 uni-orm migrate --from mongodb --to couchdb
 ```
@@ -162,6 +171,9 @@ For migrations between different database types (SQL to NoSQL or vice versa), Un
 ```bash
 # This will launch the dashboard for visual migration
 uni-orm migrate --from postgresql --to mongodb
+
+# After saving in dashboard
+uni-orm pull dbchange <change-id>
 ```
 
 The dashboard provides:
