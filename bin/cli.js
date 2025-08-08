@@ -90,7 +90,8 @@ db
 db
   .command('push')
   .description('Push uniorm.schema.yaml to database')
-  .action(async () => {
+  .option('--force', 'Allow destructive changes (drops)')
+  .action(async (opts) => {
     const configPath = path.join(process.cwd(), '.uni-orm', 'config.json');
     const { provider, url } = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const schemaPath = path.join(process.cwd(), 'uniorm.schema.yaml');
@@ -98,7 +99,7 @@ db
     const res = await fetch('http://localhost:6499/db/push', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, url, schemaYaml })
+      body: JSON.stringify({ provider, url, schemaYaml, force: opts.force })
     });
     const data = await res.json();
     console.log(data);
