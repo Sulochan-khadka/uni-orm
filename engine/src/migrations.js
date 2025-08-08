@@ -59,19 +59,42 @@ async function plan({ from, to }) {
     }
   }
 
-  return { ops, tables: tablesToCopy, from: from.provider, to: to.provider };
+  return {
+    ops,
+    tables: tablesToCopy,
+    from: from.provider,
+    to: to.provider,
+    mapping: {},
+    idStrategy: 'auto',
+    decimalMode: 'string',
+    indexes: [],
+    referenceEmbedding: false,
+    targetConnection: {}
+  };
 }
-
-async function applyPlan({ plan, batchSize = 10000 }) {
+async function applyPlan({ plan, token, batchSize = 10000 }) {
   const fromDb = await loadSample(plan.from);
   const toDb = await loadSample(plan.to);
+
+  const tokenFile = path.join(process.cwd(), '.uni-orm', 'applied-changesets.json');
+  await fs.ensureDir(path.dirname(tokenFile));
+  let applied = [];
+  if (await fs.pathExists(tokenFile)) {
+    applied = await fs.readJson(tokenFile);
+  }
+  if (token && applied.includes(token)) {
+    console.log(`Changeset ${token} already applied`);
+    return { applied: false };
+  }
 
   const newSchema = JSON.parse(JSON.stringify(toDb.schema));
   const newData = JSON.parse(JSON.stringify(toDb.data));
 
+  console.log(`Applying changeset from ${plan.from} to ${plan.to}`);
   for (const op of plan.ops) {
     switch (op.type) {
       case 'create_table': {
+        console.log(`Creating ${plan.to === 'mongodb' ? 'collection' : 'table'} ${op.table}`);
         newSchema.tables.push({ name: op.table, columns: [], indexes: [], fks: [] });
         break;
       }
@@ -80,6 +103,7 @@ async function applyPlan({ plan, batchSize = 10000 }) {
         if (tbl) {
           tbl.columns = tbl.columns || [];
           tbl.columns.push(op.column);
+          console.log(`Adding column ${op.column.name} to ${op.table}`);
         }
         break;
       }
@@ -88,6 +112,7 @@ async function applyPlan({ plan, batchSize = 10000 }) {
         if (tbl) {
           tbl.indexes = tbl.indexes || [];
           tbl.indexes.push(op.index);
+          console.log(`Creating index ${op.index.name} on ${op.table}`);
         }
         break;
       }
@@ -96,6 +121,7 @@ async function applyPlan({ plan, batchSize = 10000 }) {
         if (tbl) {
           tbl.fks = tbl.fks || [];
           tbl.fks.push(op.fk);
+          console.log(`Adding foreign key ${op.fk.name} on ${op.table}`);
         }
         break;
       }
@@ -107,12 +133,18 @@ async function applyPlan({ plan, batchSize = 10000 }) {
     const rows = fromData[table] || [];
     for (let i = 0; i < rows.length; i += batchSize) {
       const batch = rows.slice(i, i + batchSize);
+      const transformed = batch.map((row) => ({ ...row }));
       newData[table] = newData[table] || [];
-      newData[table].push(...batch);
+      newData[table].push(...transformed);
+      console.log(`Inserted batch ${Math.floor(i / batchSize) + 1} into ${table}`);
     }
   }
 
   await saveSample(plan.to, { schema: newSchema, data: newData });
+  if (token) {
+    applied.push(token);
+    await fs.writeJson(tokenFile, applied, { spaces: 2 });
+  }
   return { applied: true };
 }
 

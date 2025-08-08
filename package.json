@@ -13,7 +13,7 @@
     "dashboard": "node src/dashboard/server.js",
     "dev:engine": "node engine/server.js",
     "dev:dashboard": "node dashboard/server.js",
-    "test": "jest",
+    "test": "jest --runInBand",
     "build": "npm run build:cli && npm run build:dashboard",
     "build:cli": "pkg bin/cli.js --out-path dist/",
     "build:dashboard": "cd src/dashboard && npm run build",

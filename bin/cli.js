@@ -124,7 +124,7 @@ pull
     await fetch('http://localhost:6499/migrations/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan })
+      body: JSON.stringify({ token, plan })
     });
     console.log('Changeset applied');
   });
@@ -133,6 +133,10 @@ async function runMigrate(from, to, type) {
   const sql = new Set(['mysql', 'postgres', 'sqlite']);
   const fromSQL = sql.has(from);
   const toSQL = sql.has(to);
+
+  const isSqlMongo =
+    (fromSQL && to === 'mongodb') ||
+    (toSQL && from === 'mongodb');
 
   if (fromSQL && toSQL) {
     const planRes = await fetch('http://localhost:6499/migrations/plan', {
@@ -152,7 +156,7 @@ async function runMigrate(from, to, type) {
     });
     const result = await applyRes.json();
     console.log(result);
-  } else {
+  } else if (isSqlMongo) {
     const { confirm } = await prompt([
       {
         type: 'confirm',
@@ -165,6 +169,8 @@ async function runMigrate(from, to, type) {
       const manager = new DashboardManager();
       await manager.start(3000);
     }
+  } else {
+    console.log('Unsupported migration type');
   }
 }
 
