@@ -2,6 +2,7 @@
 
 const { program } = require('commander');
 const chalk = require('chalk');
+const fetch = global.fetch;
 
 // Display banner
 console.log(
@@ -20,11 +21,20 @@ program
   .command('init')
   .description('Initialize UniORM in your project')
   .option('-l, --language <language>', 'specify programming language')
-  .option('-d, --database <database>', 'specify database type')
+  .option('-p, --provider <provider>', 'specify database provider')
+  .option('-u, --url <url>', 'database connection URL')
   .action(async (options) => {
-    const { UniORM } = require('../src/core/UniORM');
-    const uniorm = new UniORM();
-    await uniorm.initialize(options);
+    const res = await fetch('http://localhost:6499/project/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: options.language,
+        provider: options.provider,
+        url: options.url
+      })
+    });
+    const data = await res.json();
+    console.log(data);
   });
 
 program
@@ -41,13 +51,30 @@ program
 program
   .command('migrate')
   .description('Run database migrations')
-  .option('-f, --from <database>', 'source database')
-  .option('-t, --to <database>', 'target database')
+  .option('--from-provider <provider>', 'source database provider')
+  .option('--from-url <url>', 'source database URL')
+  .option('--to-provider <provider>', 'target database provider')
+  .option('--to-url <url>', 'target database URL')
   .option('--type <type>', 'migration type: schema, data, or both', 'both')
   .action(async (options) => {
-    const { MigrationManager } = require('../src/core/MigrationManager');
-    const migrationManager = new MigrationManager();
-    await migrationManager.migrate(options);
+    const planRes = await fetch('http://localhost:6499/migrations/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: { provider: options.fromProvider, url: options.fromUrl },
+        to: { provider: options.toProvider, url: options.toUrl },
+        options: { type: options.type }
+      })
+    });
+    const plan = await planRes.json();
+    console.log('Plan:', plan);
+    const applyRes = await fetch('http://localhost:6499/migrations/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan })
+    });
+    const result = await applyRes.json();
+    console.log('Apply:', result);
   });
 
 program
@@ -73,11 +100,23 @@ program
 program
   .command('sync')
   .description('Sync database schema with ORM models')
-  .option('--force', 'force sync (destructive)')
+  .option('--provider <provider>', 'database provider')
+  .option('--url <url>', 'database connection URL')
+  .option('--schema <file>', 'path to schema file', 'uniorm.schema.yaml')
   .action(async (options) => {
-    const { UniORM } = require('../src/core/UniORM');
-    const uniorm = new UniORM();
-    await uniorm.sync(options);
+    const fs = require('fs');
+    const schemaText = fs.readFileSync(options.schema, 'utf8');
+    const res = await fetch('http://localhost:6499/db/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: options.provider,
+        url: options.url,
+        schemaYaml: schemaText
+      })
+    });
+    const data = await res.json();
+    console.log(data);
   });
 
 program.parse();
