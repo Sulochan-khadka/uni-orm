@@ -63,13 +63,9 @@ program
   .command('generate')
   .description('Run code generator')
   .action(async () => {
-    const res = await fetch('http://localhost:6499/codegen', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
-    const data = await res.json();
-    console.log(data);
+    const { main: generate } = require('../src/codegen/generate');
+    const result = generate();
+    console.log('Generated clients:', result);
   });
 
 const db = program.command('db').description('Database commands');

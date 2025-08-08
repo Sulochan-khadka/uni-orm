@@ -7,6 +7,9 @@ const { validateSchema } = require('./src/schema');
 const { pull, push } = require('./src/db');
 const { plan, applyPlan } = require('./src/migrations');
 const { saveChangeset, loadChangeset } = require('./src/changesets');
+const fs = require('fs');
+const path = require('path');
+const YAML = require('yaml');
 
 const app = express();
 app.use(cors());
@@ -89,6 +92,53 @@ app.get('/changesets/:token', async (req, res) => {
     res.status(404).json({ error: 'not found' });
   }
 });
+
+// Load schema and set up CRUD routes
+function setupCrudRoutes() {
+  try {
+    const schemaPath = path.join(__dirname, '..', 'uniorm.schema.yaml');
+    const text = fs.readFileSync(schemaPath, 'utf8');
+    const schema = YAML.parse(text);
+    const models = schema.models || {};
+    Object.keys(models).forEach((name) => {
+      const route = name.charAt(0).toLowerCase() + name.slice(1) + 's';
+      const store = [];
+      let nextId = 1;
+      app.get(`/${route}`, (req, res) => {
+        res.json(store);
+      });
+      app.get(`/${route}/:id`, (req, res) => {
+        const id = Number(req.params.id);
+        const item = store.find((x) => x.id === id);
+        if (!item) return res.status(404).json({ error: 'not found' });
+        res.json(item);
+      });
+      app.post(`/${route}`, (req, res) => {
+        const item = { ...req.body, id: nextId++ };
+        store.push(item);
+        res.json(item);
+      });
+      app.put(`/${route}/:id`, (req, res) => {
+        const id = Number(req.params.id);
+        const idx = store.findIndex((x) => x.id === id);
+        if (idx === -1) return res.status(404).json({ error: 'not found' });
+        store[idx] = { ...store[idx], ...req.body };
+        res.json(store[idx]);
+      });
+      app.delete(`/${route}/:id`, (req, res) => {
+        const id = Number(req.params.id);
+        const idx = store.findIndex((x) => x.id === id);
+        if (idx === -1) return res.status(404).json({ error: 'not found' });
+        const [removed] = store.splice(idx, 1);
+        res.json(removed);
+      });
+    });
+  } catch (e) {
+    console.error('Failed to set up CRUD routes:', e);
+  }
+}
+
+setupCrudRoutes();
 
 const PORT = 6499;
 app.listen(PORT, () => {

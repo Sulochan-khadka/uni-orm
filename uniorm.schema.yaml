@@ -1,0 +1,21 @@
+models:
+  User:
+    fields:
+      id: int
+      name: string
+    relations:
+      posts:
+        model: Post
+        type: hasMany
+        foreignKey: authorId
+  Post:
+    fields:
+      id: int
+      title: string
+      content: string
+      authorId: int
+    relations:
+      author:
+        model: User
+        type: belongsTo
+        foreignKey: authorId
