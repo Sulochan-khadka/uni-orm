@@ -26,9 +26,38 @@ class DatabaseAdapter {
   }
 
   async disconnect() {
-    if (this.connection) {
-      await this.connection.close();
+    if (!this.connection) return;
+
+    switch (this.databaseType) {
+      case 'postgresql':
+      case 'mysql':
+        // pg and mysql2 use .end() for graceful shutdown
+        await this.connection.end();
+        break;
+      case 'sqlite':
+        // sqlite3 uses callback-based close
+        await new Promise((resolve, reject) => {
+          this.connection.close(err => (err ? reject(err) : resolve()));
+        });
+        break;
+      case 'mongodb':
+        // MongoDB requires closing the client
+        if (this.mongoClient) {
+          await this.mongoClient.close();
+        }
+        break;
+      case 'redis':
+        // redis v4+ exposes quit() for closing connection
+        await this.connection.quit();
+        break;
+      default:
+        // attempt generic close if available
+        if (typeof this.connection.close === 'function') {
+          await this.connection.close();
+        }
     }
+
+    this.connection = null;
   }
 
   async exportSchema() {
@@ -340,6 +369,7 @@ class DatabaseAdapter {
     const url = process.env.MONGODB_URL || 'mongodb://localhost:27017';
     const client = new MongoClient(url);
     await client.connect();
+    this.mongoClient = client;
     this.connection = client.db(process.env.DB_NAME || 'test');
   }
 
