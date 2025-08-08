@@ -1,0 +1,21 @@
+{
+  "schema": {
+    "tables": [
+      {
+        "name": "users",
+        "columns": [
+          { "name": "id", "type": "INTEGER", "pk": true, "nullable": false },
+          { "name": "name", "type": "TEXT", "pk": false, "nullable": false }
+        ],
+        "indexes": [],
+        "fks": []
+      }
+    ]
+  },
+  "data": {
+    "users": [
+      { "id": 1, "name": "Alice" },
+      { "id": 2, "name": "Bob" }
+    ]
+  }
+}
