@@ -5,6 +5,7 @@ const ora = require('ora');
 const inquirer = require('inquirer');
 const { ConfigManager } = require('./ConfigManager');
 const { DatabaseAdapter } = require('../adapters/DatabaseAdapter');
+const { randomBytes } = require('crypto');
 
 class MigrationManager {
   constructor() {
@@ -120,23 +121,53 @@ class MigrationManager {
   }
 
   async performCrossTypeMigration(from, to, type) {
+    const { confirm } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'confirm',
+        message: `Do you really want to change your entire codebase from ${from} to ${to}?`,
+        default: false
+      }
+    ]);
+
+    if (!confirm) {
+      console.log(chalk.red('Migration cancelled.'));
+      return;
+    }
+
     console.log(chalk.yellow('Cross-type migration detected!'));
     console.log(chalk.blue('Launching dashboard for visual migration...'));
-    
+
     // Export current schema
     const fromAdapter = new DatabaseAdapter(from);
     await fromAdapter.connect();
-    
+
     const schema = await fromAdapter.exportSchema();
     await fromAdapter.disconnect();
-    
+
     // Save schema for dashboard
     const schemaPath = path.join(process.cwd(), 'migration-schema.json');
     await fs.outputFile(schemaPath, JSON.stringify(schema, null, 2));
-    
+
     console.log(chalk.green('Schema exported to migration-schema.json'));
     console.log(chalk.yellow('Please run "uni-orm dashboard" to continue with visual migration'));
-    
+
+    // Generate pending change id
+    const changeId = randomBytes(6).toString('hex');
+    const changeDir = path.join(process.cwd(), 'dbchanges');
+    await fs.ensureDir(changeDir);
+    await fs.outputJSON(path.join(changeDir, `${changeId}.json`), {
+      id: changeId,
+      from,
+      to,
+      type,
+      created: new Date().toISOString()
+    });
+
+    console.log(chalk.green(`
+Dashboard will guide you through mapping schemas.`));
+    console.log(chalk.green(`After saving changes, run: uni-orm pull dbchange ${changeId}`));
+
     // Generate migration instructions
     await this.generateCrossTypeMigrationInstructions(from, to, type);
   }
@@ -227,6 +258,27 @@ class MigrationManager {
     }
     
     return considerations;
+  }
+
+  async pullDbChange(id) {
+    try {
+      const changePath = path.join(process.cwd(), 'dbchanges', `${id}.json`);
+      if (!(await fs.pathExists(changePath))) {
+        console.log(chalk.red('Database change not found'));
+        return;
+      }
+
+      const change = await fs.readJSON(changePath);
+      const config = await this.configManager.load();
+      const language = config.language || 'javascript';
+
+      await this.configManager.generate(language, change.to);
+      await fs.remove(changePath);
+
+      console.log(chalk.green(`Database configuration updated to ${change.to}`));
+    } catch (error) {
+      console.error(chalk.red(error.message));
+    }
   }
 
   async listMigrations() {
