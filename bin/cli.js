@@ -2,121 +2,187 @@
 
 const { program } = require('commander');
 const chalk = require('chalk');
+const inquirer = require('inquirer');
+const prompt = inquirer.createPromptModule();
+const fs = require('fs');
+const path = require('path');
+const YAML = require('yaml');
 const fetch = global.fetch;
+const { DashboardManager } = require('../src/dashboard/DashboardManager');
+const pkg = require('../package.json');
 
-// Display banner
+// Banner
 console.log(
   chalk.cyan(
-    `\n  _   _       _  ___  ____  __  __\n | | | |_ __ (_)/ _ \\|  _ \\|  \\/  |\n | | | | '_ \\| | | | | |_) | |\\/| |\n | |_| | | | | | |_| |  _ <| |  | |\n  \\___/|_| |_|_|\\___/|_| \\_\\_|  |_|\n`
+    `\n  _   _       _  ___  ____  __  __\n | | | |_ __ (_)/ _ \\|  _ \\|  \\/  |\n | | | | '_ \\| | | | | |_) | |\\/| |\n | |_| | | | | |_| |  _ <| |  | |\n  \\___/|_| |_|_|\\___/|_| \\_\\_|  |_|\n`
   )
 );
 console.log(chalk.yellow('Universal ORM for all programming languages\n'));
 
 program
-  .name('uni-orm')
+  .name('uniorm')
   .description('Universal ORM CLI')
-  .version('1.0.0');
+  .version(pkg.version);
 
 program
   .command('init')
-  .description('Initialize UniORM in your project')
-  .option('-l, --language <language>', 'specify programming language')
-  .option('-p, --provider <provider>', 'specify database provider')
-  .option('-u, --url <url>', 'database connection URL')
-  .action(async (options) => {
+  .description('Initialize UniORM project')
+  .action(async () => {
+    const { language } = await prompt([
+      {
+        type: 'list',
+        name: 'language',
+        message: 'Select your language',
+        choices: [
+          { name: 'TypeScript', value: 'ts' },
+          { name: 'Python', value: 'py' }
+        ]
+      }
+    ]);
+    const { provider } = await prompt([
+      {
+        type: 'list',
+        name: 'provider',
+        message: 'Select your database provider',
+        choices: ['mysql', 'postgres', 'sqlite', 'mongodb']
+      }
+    ]);
+    const { url } = await prompt([
+      { type: 'input', name: 'url', message: 'Database connection URL' }
+    ]);
     const res = await fetch('http://localhost:6499/project/init', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        language: options.language,
-        provider: options.provider,
-        url: options.url
-      })
+      body: JSON.stringify({ language, provider, url })
     });
     const data = await res.json();
     console.log(data);
   });
 
 program
-  .command('detect')
-  .description('Detect programming language and database in current project')
+  .command('generate')
+  .description('Run code generator')
   .action(async () => {
-    const { LanguageDetector } = require('../src/core/LanguageDetector');
-    const detector = new LanguageDetector();
-    const result = await detector.detectAll();
-    console.log(chalk.green('Detection results:'));
-    console.log(result);
+    const res = await fetch('http://localhost:6499/codegen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    console.log(data);
+  });
+
+const db = program.command('db').description('Database commands');
+
+db
+  .command('pull')
+  .description('Pull database schema into uniorm.schema.yaml')
+  .action(async () => {
+    const configPath = path.join(process.cwd(), '.uni-orm', 'config.json');
+    const { provider, url } = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const res = await fetch('http://localhost:6499/db/pull', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, url })
+    });
+    const data = await res.json();
+    const schemaYaml = YAML.stringify(data.ir || {});
+    fs.writeFileSync(path.join(process.cwd(), 'uniorm.schema.yaml'), schemaYaml);
+    console.log('Wrote uniorm.schema.yaml');
+  });
+
+db
+  .command('push')
+  .description('Push uniorm.schema.yaml to database')
+  .action(async () => {
+    const configPath = path.join(process.cwd(), '.uni-orm', 'config.json');
+    const { provider, url } = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const schemaPath = path.join(process.cwd(), 'uniorm.schema.yaml');
+    const schemaYaml = fs.readFileSync(schemaPath, 'utf8');
+    const res = await fetch('http://localhost:6499/db/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, url, schemaYaml })
+    });
+    const data = await res.json();
+    console.log(data);
   });
 
 program
-  .command('migrate')
-  .description('Run database migrations')
-  .option('--from-provider <provider>', 'source database provider')
-  .option('--from-url <url>', 'source database URL')
-  .option('--to-provider <provider>', 'target database provider')
-  .option('--to-url <url>', 'target database URL')
-  .option('--type <type>', 'migration type: schema, data, or both', 'both')
-  .action(async (options) => {
+  .command('dashboard')
+  .description('Start dashboard server')
+  .option('--port <port>', 'port number', '3000')
+  .action(async (opts) => {
+    const manager = new DashboardManager();
+    await manager.start(opts.port);
+  });
+
+const pull = program.command('pull').description('Pull operations');
+pull
+  .command('dbchange <token>')
+  .description('Apply database changeset by token')
+  .action(async (token) => {
+    const res = await fetch(`http://localhost:6499/changesets/${token}`);
+    const plan = await res.json();
+    await fetch('http://localhost:6499/migrations/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan })
+    });
+    console.log('Changeset applied');
+  });
+
+async function runMigrate(from, to, type) {
+  const sql = new Set(['mysql', 'postgres', 'sqlite']);
+  const fromSQL = sql.has(from);
+  const toSQL = sql.has(to);
+
+  if (fromSQL && toSQL) {
     const planRes = await fetch('http://localhost:6499/migrations/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: { provider: options.fromProvider, url: options.fromUrl },
-        to: { provider: options.toProvider, url: options.toUrl },
-        options: { type: options.type }
+        from: { provider: from },
+        to: { provider: to },
+        options: { type }
       })
     });
     const plan = await planRes.json();
-    console.log('Plan:', plan);
     const applyRes = await fetch('http://localhost:6499/migrations/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan })
     });
     const result = await applyRes.json();
-    console.log('Apply:', result);
-  });
+    console.log(result);
+  } else {
+    const { confirm } = await prompt([
+      {
+        type: 'confirm',
+        name: 'confirm',
+        message: `Do you really want to change your entire codebase from ${from} to ${to}?`,
+        default: false
+      }
+    ]);
+    if (confirm) {
+      const manager = new DashboardManager();
+      await manager.start(3000);
+    }
+  }
+}
 
-program
-  .command('dashboard')
-  .description('Launch web dashboard for visual database management')
-  .option('-p, --port <port>', 'port number', '3000')
-  .action(async (options) => {
-    const { DashboardManager } = require('../src/dashboard/DashboardManager');
-    const dashboardManager = new DashboardManager();
-    await dashboardManager.start(options.port);
+const args = process.argv.slice(2);
+if (args.length >= 3 && args[1] === 'migrate') {
+  let type = 'both';
+  const idx = args.indexOf('--type');
+  if (idx !== -1 && args[idx + 1]) {
+    type = args[idx + 1];
+  }
+  runMigrate(args[0], args[2], type).catch((err) => {
+    console.error(err);
+    process.exit(1);
   });
+} else {
+  program.parse();
+}
 
-program
-  .command('generate')
-  .description('Generate ORM models and configurations')
-  .option('-t, --type <type>', 'generation type: models, config, or all', 'all')
-  .action(async (options) => {
-    const { UniORM } = require('../src/core/UniORM');
-    const uniorm = new UniORM();
-    await uniorm.generate(options);
-  });
-
-program
-  .command('sync')
-  .description('Sync database schema with ORM models')
-  .option('--provider <provider>', 'database provider')
-  .option('--url <url>', 'database connection URL')
-  .option('--schema <file>', 'path to schema file', 'uniorm.schema.yaml')
-  .action(async (options) => {
-    const fs = require('fs');
-    const schemaText = fs.readFileSync(options.schema, 'utf8');
-    const res = await fetch('http://localhost:6499/db/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: options.provider,
-        url: options.url,
-        schemaYaml: schemaText
-      })
-    });
-    const data = await res.json();
-    console.log(data);
-  });
-
-program.parse();
