@@ -5,6 +5,18 @@ const { spawn } = require('child_process');
 
 jest.setTimeout(30000);
 
+async function waitFor(url, timeout = 30000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return;
+    } catch (_) {}
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw new Error('Server did not start in time');
+}
+
 describe('mysql to postgres migration sample', () => {
   let tmpDir;
   let server;
@@ -18,7 +30,7 @@ describe('mysql to postgres migration sample', () => {
       env: { ...process.env, UNIORM_SAMPLE_DIR: tmpDir },
       stdio: 'ignore'
     });
-    await new Promise((res) => setTimeout(res, 500));
+    await waitFor('http://localhost:6499/health');
   });
 
   afterAll(async () => {
