@@ -1,4 +1,4 @@
-import { createClient } from '@uniorm/client';
+const { createClient } = require('../../generated/ts');
 
 async function main() {
   const client = createClient({ baseUrl: 'http://localhost:6499' });
@@ -14,4 +14,7 @@ async function main() {
   console.log('Deleted user');
 }
 
-main();
+main().catch((err: any) => {
+  console.error(err);
+  process.exit(1);
+});
