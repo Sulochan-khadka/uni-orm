@@ -1,7 +1,7 @@
 const { MongoAdapter } = require('../src/adapters/MongoAdapter');
 
 // Allow extra time for the MongoDB binary download on fresh environments
-jest.setTimeout(30000);
+jest.setTimeout(120000);
 
 describe('MongoAdapter', () => {
   let adapter;
