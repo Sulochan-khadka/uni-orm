@@ -1,5 +1,5 @@
 import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'generated', 'py'))
 from uniorm import create_client
 
 client = create_client('http://localhost:6499')

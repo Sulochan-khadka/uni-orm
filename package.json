@@ -17,7 +17,8 @@
     "build": "npm run build:cli && npm run build:dashboard",
     "build:cli": "pkg bin/cli.js --out-path dist/",
     "build:dashboard": "cd src/dashboard && npm run build",
-    "build:bin": "pkg ./bin/cli.js --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output dist/uniorm"
+    "build:bin": "pkg ./bin/cli.js --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output dist/uniorm",
+    "test:e2e": "node scripts/e2e.js"
   },
   "keywords": [
     "orm",
