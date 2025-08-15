@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: node18-linux-x64
+            asset_name: uniorm-linux
+            asset_path: dist/uniorm-linux
+          - os: macos-latest
+            target: node18-macos-x64
+            asset_name: uniorm-macos
+            asset_path: dist/uniorm-macos
+          - os: windows-latest
+            target: node18-win-x64
+            asset_name: uniorm-win.exe
+            asset_path: dist/uniorm-win.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm test
+      - name: Build binary
+        run: npx pkg ./bin/cli.js --targets ${{ matrix.target }} --output ${{ matrix.asset_path }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_path }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: uniorm-linux
+          path: dist
+      - uses: actions/download-artifact@v3
+        with:
+          name: uniorm-macos
+          path: dist
+      - uses: actions/download-artifact@v3
+        with:
+          name: uniorm-win.exe
+          path: dist
+      - uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          files: |
+            dist/uniorm-linux
+            dist/uniorm-macos
+            dist/uniorm-win.exe
