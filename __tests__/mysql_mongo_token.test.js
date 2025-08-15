@@ -8,11 +8,12 @@ jest.setTimeout(30000);
 async function waitForServer(url, retries = 10, delay = 500) {
   for (let i = 0; i < retries; i++) {
     try {
-      await fetch(url);
-      return;
+      const res = await fetch(url);
+      if (res.ok) return;
     } catch {
-      await new Promise((res) => setTimeout(res, delay));
+      /* ignore */
     }
+    await new Promise((res) => setTimeout(res, delay));
   }
   throw new Error(`Server not ready at ${url}`);
 }
@@ -30,7 +31,7 @@ describe('mysql to mongodb changeset flow', () => {
       env: { ...process.env, UNIORM_SAMPLE_DIR: tmpDir },
       stdio: 'ignore'
     });
-    await waitForServer('http://localhost:6499');
+    await waitForServer('http://localhost:6499/health');
   });
 
   afterAll(async () => {
