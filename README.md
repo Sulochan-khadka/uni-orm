@@ -26,15 +26,27 @@ UniORM is a revolutionary universal ORM that works across all programming langua
 
 ### macOS / Linux
 
-````bash
+```bash
 curl -fsSL https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.sh | bash
-# Or pin a version:
+```
+
+Or pin a version:
+
+```bash
 UNIORM_VERSION=v0.1.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.sh)"
+```
 
+### Windows
+
+```powershell
 iwr https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.ps1 -UseBasicParsing | iex
-# Or pin:
-$env:UNIORM_VERSION="v0.1.0"; iwr https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.ps1 -UseBasicParsing | iex
+```
 
+Or pin:
+
+```powershell
+$env:UNIORM_VERSION="v0.1.0"; iwr https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.ps1 -UseBasicParsing | iex
+```
 
 ## Quick Start
 
@@ -42,7 +54,7 @@ $env:UNIORM_VERSION="v0.1.0"; iwr https://raw.githubusercontent.com/sulochankhad
 
 ```bash
 uni-orm init
-````
+```
 
 2. **Let UniORM detect your setup or choose manually:**
 
