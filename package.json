@@ -12,8 +12,9 @@
     "dashboard": "node src/dashboard/server.js",
     "test": "jest",
     "build": "npm run build:cli && npm run build:dashboard",
-    "build:cli": "pkg bin/cli.js --out-path dist/",
-    "build:dashboard": "cd src/dashboard && npm run build"
+    "build:cli": "pkg . --out-path dist/",
+    "build:dashboard": "cd src/dashboard && npm run build",
+    "pack:tgz": "npm pack"
   },
   "keywords": [
     "orm",
@@ -52,5 +53,33 @@
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "pkg": {
+    "scripts": "bin/cli.js",
+    "assets": [
+      "src/**/*.js",
+      "README.md",
+      "LICENSE"
+    ],
+    "targets": [
+      "node20-macos-x64",
+      "node20-macos-arm64",
+      "node20-linux-x64",
+      "node20-linux-arm64",
+      "node20-win-x64"
+    ],
+    "outputPath": "dist"
   }
 }

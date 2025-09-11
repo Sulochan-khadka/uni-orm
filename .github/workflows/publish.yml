@@ -1,99 +1,68 @@
-name: Publish Artifacts & Deploy Pages
+name: Build & Release UniORM Binaries
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - 'dist/**'
-      - 'lib/**'
-      - 'package.json'
-      - '*.gemspec'
-      - 'composer.json'
-      - 'docs/**'
+    tags:
+      - 'v*.*.*' # e.g., v0.1.0
+
+permissions:
+  contents: write # required to create/upload release assets
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish-js:
-    name: Publish JS/TS Package
+  build-linux:
+    name: linux binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
-      - name: Install & Build
-        run: |
-          npm ci
-          npm run build
-      - name: Publish to npm
+          node-version: '20'
+      - run: npm ci
+      - run: npx pkg .
+      - run: ls -la dist
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          npm publish --access public
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-python:
-    name: Publish Python Package
-    runs-on: ubuntu-latest
+  build-macos:
+    name: macOS binaries
+    runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.x'
-      - name: Build & Publish to PyPI
-        run: |
-          python -m pip install --upgrade build twine
-          python -m build --sdist --wheel
-          python -m twine upload --username "${{ secrets.PYPI_USERNAME }}" \
-                                --password "${{ secrets.PYPI_PASSWORD }}" \
-                                dist/*
+          node-version: '20'
+      - run: npm ci
+      - run: npx pkg .
+      - run: ls -la dist
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-ruby:
-    name: Publish Ruby Gem
-    runs-on: ubuntu-latest
+  build-windows:
+    name: windows binaries
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          ruby-version: '3.1'
-      - name: Build & Push Gem
-        run: |
-          gem build uni-orm.gemspec
-          gem push uni-orm-$(ruby -e "print Gem::Specification.load('uni-orm.gemspec').version") --api-key ${{ secrets.RUBYGEMS_API_KEY }}
-
-  publish-php:
-    name: Notify Packagist
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+          node-version: '20'
+      - run: npm ci
+      - run: npx pkg .
+      - run: Get-ChildItem dist
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          php-version: '8.0'
-          extensions: pdo
-      - name: Configure Composer Auth
-        run: |
-          echo '${{ secrets.COMPOSER_AUTH }}' > ~/.composer/auth.json
-      - name: Update Package on Packagist
-        run: |
-          curl -X POST "https://packagist.org/api/update-package?username=$(jq -r '."http-basic"."repo.packagist.org".username' ~/.composer/auth.json)&apiToken=$(jq -r '."http-basic"."repo.packagist.org".password' ~/.composer/auth.json)&repository=https://github.com/${{ github.repository }}"
-
-  deploy-pages:
-    name: Deploy GitHub Pages
-    needs:
-      - publish-js
-      - publish-python
-      - publish-ruby
-      - publish-php
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Deploy Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          files: dist\*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
