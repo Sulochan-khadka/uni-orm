@@ -1,0 +1,56 @@
+{
+  "name": "uni-orm",
+  "version": "1.0.0",
+  "description": "Universal ORM that works across all programming languages and databases",
+  "main": "src/index.js",
+  "bin": {
+    "uni-orm": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "cli": "node bin/cli.js",
+    "dashboard": "node src/dashboard/server.js",
+    "test": "jest",
+    "build": "npm run build:cli && npm run build:dashboard",
+    "build:cli": "pkg bin/cli.js --out-path dist/",
+    "build:dashboard": "cd src/dashboard && npm run build"
+  },
+  "keywords": [
+    "orm",
+    "database",
+    "universal",
+    "migration",
+    "multi-language",
+    "prisma",
+    "sequelize",
+    "typeorm"
+  ],
+  "author": "UniORM Team",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "body-parser": "1.20.2",
+    "boxen": "6.2.1",
+    "chalk": "4.1.2",
+    "commander": "9.5.0",
+    "cors": "2.8.5",
+    "express": "4.18.2",
+    "figlet": "1.7.0",
+    "fs-extra": "10.1.0",
+    "inquirer": "8.2.6",
+    "node-fetch": "2.6.7",
+    "ora": "5.4.1",
+    "semver": "7.5.4",
+    "ws": "8.14.2",
+    "yaml": "2.3.4"
+  },
+  "devDependencies": {
+    "husky": "9.1.7",
+    "jest": "29.7.0",
+    "nodemon": "3.0.1",
+    "pkg": "5.8.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

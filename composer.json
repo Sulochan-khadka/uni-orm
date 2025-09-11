@@ -1,0 +1,21 @@
+{
+  "name": "sulochan-khadka/uni-orm",
+  "description": "Universal ORM for PHP",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Sulochan Khadka",
+      "email": "sulochankhadka25@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.4",
+    "ext-pdo": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "UniOrm\\": "src/"
+    }
+  }
+}
