@@ -1,6 +1,6 @@
 param([string]$Version = $env:UNIORM_VERSION)
 
-$Repo = "sulochankhadka/uni-orm"  # <-- change if needed
+$Repo = "Sulochan-khadka/uni-orm"  # <-- change if needed
 $Bin  = "uni-orm.exe"
 $Tag  = $Version
 

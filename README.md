@@ -22,13 +22,19 @@ UniORM is a revolutionary universal ORM that works across all programming langua
 - **Visual Migration**: No-code interface for complex database transformations
 - **Real-time Sync**: Keep your database schema in sync with your models
 
-## Installation Guide
+## Install (no language/runtime required)
 
-Install UniORM globally using npm:
+### macOS / Linux
 
-```bash
-npm install -g uni-orm
-```
+````bash
+curl -fsSL https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.sh | bash
+# Or pin a version:
+UNIORM_VERSION=v0.1.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.sh)"
+
+iwr https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.ps1 -UseBasicParsing | iex
+# Or pin:
+$env:UNIORM_VERSION="v0.1.0"; iwr https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.ps1 -UseBasicParsing | iex
+
 
 ## Quick Start
 
@@ -36,7 +42,7 @@ npm install -g uni-orm
 
 ```bash
 uni-orm init
-```
+````
 
 2. **Let UniORM detect your setup or choose manually:**
 

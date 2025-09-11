@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="sulochankhadka/uni-orm"           # <-- change if your repo differs
+REPO="Sulochan-khadka/uni-orm"           # <-- change if your repo differs
 BIN_NAME="uni-orm"                       # final CLI name on PATH
 VERSION="${UNIORM_VERSION:-latest}"
 
