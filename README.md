@@ -27,25 +27,25 @@ UniORM is a revolutionary universal ORM that works across all programming langua
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Sulochan-khadka/uni-orm/release/scripts/install.sh | bash
 ```
 
 Or pin a version:
 
 ```bash
-UNIORM_VERSION=v0.1.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.sh)"
+UNIORM_VERSION=v0.1.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sulochan-khadka/uni-orm/release/scripts/install.sh)"
 ```
 
 ### Windows
 
 ```powershell
-iwr https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.ps1 -UseBasicParsing | iex
+iwr https://raw.githubusercontent.com/Sulochan-khadka/uni-orm/release/scripts/install.ps1 -UseBasicParsing | iex
 ```
 
 Or pin:
 
 ```powershell
-$env:UNIORM_VERSION="v0.1.0"; iwr https://raw.githubusercontent.com/sulochankhadka/uni-orm/main/scripts/install.ps1 -UseBasicParsing | iex
+$env:UNIORM_VERSION="v0.1.0"; iwr https://raw.githubusercontent.com/Sulochan-khadka/uni-orm/release/scripts/install.ps1 -UseBasicParsing | iex
 ```
 
 ## Quick Start
