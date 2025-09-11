@@ -14,7 +14,7 @@ if (-not $Tag -or $Tag -eq "latest") {
   }
 }
 
-$Url = "https://github.com/$Repo/releases/download/$Tag/uni-orm-node20-win-x64.exe"
+$Url = "https://github.com/$Repo/releases/download/$Tag/uni-orm-node18-win-x64.exe"
 $DstDir = Join-Path $env:ProgramFiles "UniORM"
 $Dst = Join-Path $DstDir $Bin
 New-Item -ItemType Directory -Force -Path $DstDir | Out-Null

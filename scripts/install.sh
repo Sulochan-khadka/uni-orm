@@ -25,8 +25,8 @@ case "$ARCH" in
 esac
 
 case "$OS" in
-  linux)   FILE="$BIN_NAME-node20-linux-$ARCH" ;;
-  darwin)  FILE="$BIN_NAME-node20-macos-$ARCH" ;;
+  linux)   FILE="$BIN_NAME-node18-linux-$ARCH" ;;
+  darwin)  FILE="$BIN_NAME-node18-macos-$ARCH" ;;
   *) ansi_red "Unsupported OS: $OS"; exit 1 ;;
 esac
 
